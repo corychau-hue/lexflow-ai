@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea, Select } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { getAIService } from "@/lib/ai-service";
+import { getAIService } from "@/lib/ai-service-core";
 
 const actions = [
   { id: "formal_legal", label: "Formal Legal Style", icon: "⚖️" },

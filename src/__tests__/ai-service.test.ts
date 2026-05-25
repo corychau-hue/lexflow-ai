@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getAIService } from "@/lib/ai-service";
+import { getAIService } from "@/lib/ai-service-core";
 
 describe("AIService", () => {
   const service = getAIService();

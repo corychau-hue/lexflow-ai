@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { mockDocuments } from "@/lib/mock-data";
 import { formatFileSize } from "@/lib/utils";
-import { getAIService } from "@/lib/ai-service";
+import { getAIService } from "@/lib/ai-service-core";
 import type { ExtractedField } from "@/types";
 
 export default function DocumentReviewPage() {

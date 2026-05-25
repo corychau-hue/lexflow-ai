@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea, Select } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { getAIService } from "@/lib/ai-service";
+import { getAIService } from "@/lib/ai-service-core";
 
 const languagePairs = [
   { value: "en-vi", label: "English → Vietnamese", source: "ENGLISH", target: "VIETNAMESE" },
