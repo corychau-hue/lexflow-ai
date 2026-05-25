@@ -1,0 +1,20 @@
+{
+  "firstName": "Tran",
+  "lastName": "Nguyen",
+  "email": "tran.nguyen@example.com",
+  "phone": "+15551234567",
+  "dateOfBirth": "1988-03-15",
+  "gender": "Female",
+  "language": "VIETNAMESE",
+  "addressStreet": "1234 Main Street",
+  "addressCity": "Los Angeles",
+  "addressState": "CA",
+  "addressZip": "90012",
+  "immigrationStatus": "LPR",
+  "countryOfBirth": "Vietnam",
+  "countryOfCitizenship": "Vietnam",
+  "aNumber": "A123456789",
+  "ssn": "XXX-XX-1234",
+  "eSignatureConsent": true,
+  "source": "typeform"
+}

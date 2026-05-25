@@ -1,0 +1,38 @@
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+Error: Transform failed with 1 error:
+/eval.ts:1:241: ERROR: Top-level await is currently not supported with the "cjs" output format
+    at failureErrorWithLog (C:\Users\coryc\lexflow-ai\node_modules\esbuild\lib\main.js:1748:15)
+    at C:\Users\coryc\lexflow-ai\node_modules\esbuild\lib\main.js:1017:50
+    at responseCallbacks.<computed> (C:\Users\coryc\lexflow-ai\node_modules\esbuild\lib\main.js:884:9)
+    at handleIncomingPacket (C:\Users\coryc\lexflow-ai\node_modules\esbuild\lib\main.js:939:12)
+    at Socket.readFromStdout (C:\Users\coryc\lexflow-ai\node_modules\esbuild\lib\main.js:862:7)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23) {
+  errors: [
+    {
+      detail: undefined,
+      id: '',
+      location: {
+        column: 241,
+        file: '/eval.ts',
+        length: 5,
+        line: 1,
+        lineText: "import { PrismaClient } from './src/generated/prisma/client'; import { PrismaLibSql } from '@prisma/adapter-libsql'; const adapter = new PrismaLibSql({ url: 'file:./prisma/dev.db' }); const prisma = new PrismaClient({ adapter }); const cc = await prisma.client.count(); console.log(cc);",
+        namespace: '',
+        suggestion: ''
+      },
+      notes: [],
+      pluginName: '',
+      text: 'Top-level await is currently not supported with the "cjs" output format'
+    }
+  ],
+  warnings: []
+}
+
+Node.js v22.18.0

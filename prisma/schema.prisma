@@ -1,0 +1,424 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  ATTORNEY
+  PARALEGAL
+  INTAKE_STAFF
+  CLIENT
+}
+
+enum PracticeArea {
+  IMMIGRATION
+  PERSONAL_INJURY
+  FAMILY_LAW
+  PROBATE_ESTATE_PLANNING
+  REAL_PROPERTY
+  BUSINESS_TAX
+  CIVIL_LITIGATION
+}
+
+enum CaseStatus {
+  ACTIVE
+  PENDING
+  CLOSED
+  ON_HOLD
+  ARCHIVED
+}
+
+enum DocumentType {
+  PASSPORT
+  VISA
+  GREEN_CARD
+  EAD
+  I94
+  BIRTH_CERTIFICATE
+  MARRIAGE_CERTIFICATE
+  DIVORCE_DECREE
+  COURT_DOCUMENT
+  INSURANCE_LETTER
+  MEDICAL_BILL
+  DEED
+  POLICE_REPORT
+  TAX_RETURN
+  W2
+  PAY_STUB
+  MEDICAL_RECORD
+  PROPERTY_ESTIMATE
+  POWER_OF_ATTORNEY
+  TRUST_DOCUMENT
+  OTHER
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  CONSULTATION_SCHEDULED
+  RETAINER_SENT
+  RETAINED
+  DECLINED
+  FOLLOW_UP_NEEDED
+}
+
+enum Language {
+  ENGLISH
+  VIETNAMESE
+  CHINESE
+  SPANISH
+}
+
+enum AIOutputStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  DRAFT
+}
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  name          String
+  passwordHash  String
+  role          UserRole   @default(INTAKE_STAFF)
+  phone         String?
+  avatarUrl     String?
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  assignedCases  Case[]       @relation("AssignedAttorney")
+  createdCases   Case[]       @relation("CaseCreator")
+  tasks          Task[]
+  notes          Note[]
+  aiOutputs      AIOutput[]
+  sentMessages   Message[]    @relation("MessageSender")
+  auditLogs      AuditLog[]
+  esignRequests  ESignRequest[]
+
+  @@map("users")
+}
+
+model Client {
+  id                   String   @id @default(cuid())
+  firstName            String
+  lastName             String
+  email                String?
+  phone                String?
+  dateOfBirth          DateTime?
+  ssn                  String?
+  gender               String?
+  countryOfBirth       String?
+  countryOfCitizenship String?
+  otherNames           String?
+  addressStreet        String?
+  addressCity          String?
+  addressState         String?
+  addressZip           String?
+  language             Language @default(ENGLISH)
+  notes                String?
+  consentEmail         Boolean  @default(false)
+  consentSms           Boolean  @default(false)
+  eSignatureConsent    Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  cases        Case[]
+  documents    Document[]
+  leads        Lead[]
+  messages     Message[]
+  intakes      Intake[]
+
+  // Intake-specific fields
+  immigrationStatus     String?
+  employmentHistory     Json?
+  addressHistory        Json?
+  priorFilings          Json?
+  criminalHistory       Json?
+  injuryInfo            Json?
+  estateInfo            Json?
+  familyMembers         Json?
+
+  @@map("clients")
+}
+
+model Case {
+  id                String       @id @default(cuid())
+  caseName          String
+  practiceArea      PracticeArea
+  caseType          String
+  status            CaseStatus   @default(ACTIVE)
+  description       String?
+  filingDate        DateTime?
+  closingDate       DateTime?
+  importance        String?      @default("Normal")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  clientId          String
+  client            Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assignedUserId    String?
+  assignedUser      User?        @relation("AssignedAttorney", fields: [assignedUserId], references: [id])
+  createdById       String?
+  createdBy         User?        @relation("CaseCreator", fields: [createdById], references: [id])
+
+  documents       Document[]
+  tasks           Task[]
+  deadlines       Deadline[]
+  notes           Note[]
+  aiOutputs       AIOutput[]
+  checklistItems  CaseChecklistItem[]
+  messages        Message[]
+  esignRequests   ESignRequest[]
+
+  @@map("cases")
+}
+
+model Document {
+  id            String       @id @default(cuid())
+  fileName      String
+  originalName  String
+  fileType      String
+  fileSize      Int
+  filePath      String
+  documentType  DocumentType @default(OTHER)
+  description   String?
+  isProcessed   Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  clientId       String
+  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  caseId         String?
+  case           Case?        @relation(fields: [caseId], references: [id])
+
+  extractedFields ExtractedField[]
+
+  @@map("documents")
+}
+
+model ExtractedField {
+  id            String   @id @default(cuid())
+  fieldName     String
+  fieldValue    String
+  confidence    Float
+  isApproved    Boolean  @default(false)
+  isRejected    Boolean  @default(false)
+  editedValue   String?
+  sourceRef     String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  documentId    String
+  document      Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("extracted_fields")
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus @default(PENDING)
+  dueDate     DateTime?
+  priority    String?    @default("Medium")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  caseId      String?
+  case        Case?      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  assigneeId  String?
+  assignee    User?      @relation(fields: [assigneeId], references: [id])
+
+  @@map("tasks")
+}
+
+model Deadline {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime
+  reminder    Boolean  @default(true)
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  caseId      String
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("deadlines")
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  content   String
+  type      String?  @default("General")
+  isPinned  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  caseId    String?
+  case      Case?    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id])
+
+  @@map("notes")
+}
+
+model AIOutput {
+  id          String        @id @default(cuid())
+  promptType  String
+  inputText   String
+  outputText  String
+  status      AIOutputStatus @default(PENDING_REVIEW)
+  tone        String?
+  practiceArea String?
+  targetLang  String?
+  sourceLang  String?
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  caseId      String?
+  case        Case?         @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  authorId    String?
+  author      User?         @relation(fields: [authorId], references: [id])
+
+  @@map("ai_outputs")
+}
+
+model Lead {
+  id                String     @id @default(cuid())
+  firstName         String
+  lastName          String
+  email             String?
+  phone             String?
+  practiceArea      PracticeArea?
+  status            LeadStatus @default(NEW)
+  referralSource    String?
+  estimatedValue    Float?
+  consultationNotes String?
+  conflictCheckDone Boolean    @default(false)
+  conflictCheckNotes String?
+  notes             String?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  clientId          String?
+  client            Client?    @relation(fields: [clientId], references: [id])
+
+  @@map("leads")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  subject   String?
+  body      String
+  direction String   // INBOUND or OUTBOUND
+  channel   String   // EMAIL, SMS, PORTAL
+  sentAt    DateTime @default(now())
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  caseId    String?
+  case      Case?    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  clientId  String?
+  client    Client?  @relation(fields: [clientId], references: [id])
+  senderId  String?
+  sender    User?    @relation("MessageSender", fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String
+  details    Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model ESignRequest {
+  id             String   @id @default(cuid())
+  title          String
+  signerName     String
+  signerEmail    String?
+  status         String   @default("PREPARED") // PREPARED, SENT, SIGNED, COMPLETED
+  fieldPositions Json?    // Array of {page, x, y, type}
+  signedFilePath String?
+  sentAt         DateTime?
+  signedAt       DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  caseId         String?
+  case           Case?    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  documentId     String?
+  preparedById   String?
+  preparedBy     User?    @relation(fields: [preparedById], references: [id])
+
+  @@map("esign_requests")
+}
+
+model CaseChecklistItem {
+  id          String   @id @default(cuid())
+  itemName    String
+  isRequired  Boolean  @default(true)
+  isReceived  Boolean  @default(false)
+  receivedAt  DateTime?
+  notes       String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  caseId      String
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("case_checklist_items")
+}
+
+model ReviewItem {
+  id         String   @id @default(cuid())
+  title      String
+  type       String   // AI_SUMMARY, AI_WRITING, TRANSLATION, IMMIGRATION_PACKET
+  status     String   @default("PENDING_REVIEW") // PENDING_REVIEW, APPROVED, REJECTED
+  caseId     String?
+  clientName String?
+  details    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("review_items")
+}
+
+model Intake {
+  id           String   @id @default(cuid())
+  clientId     String?
+  client       Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  formData     Json     // Full intake form data from the multi-section form
+  submittedAt  DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("intakes")
+}
