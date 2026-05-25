@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { AlertTriangle, Printer, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AlertTriangle, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EVIDENCE_CHECKLIST } from "@/lib/i485-knowledge-base";
 
@@ -139,25 +137,18 @@ function FormSection({ part, title, children }: { part: string; title: string; c
 }
 
 export function I485Form({ clientData, intakeId }: I485FormProps) {
-  const formRef = useRef<HTMLDivElement>(null);
   const d = clientData;
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   return (
-    <div ref={formRef}>
-      {/* Print / controls — hidden during print */}
-      <div className="no-print flex items-center gap-3 mb-6">
-        <Button variant="primary" size="sm" onClick={handlePrint}>
-          <Printer size={16} /> Print Form
-        </Button>
-        {intakeId && <Badge variant="status" status="COMPLETED">Intake: {intakeId}</Badge>}
-      </div>
+    <div>
 
       {/* Official USCIS Form Header */}
       <div className="form-header">
+        {intakeId && (
+          <div className="no-print flex justify-end mb-2">
+            <Badge variant="status" status="COMPLETED">Intake: {intakeId}</Badge>
+          </div>
+        )}
         <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
           <p className="text-xs tracking-widest text-slate-600 mb-1">OMB No. 1615-0023</p>
           <p className="text-sm font-semibold text-slate-800">Department of Homeland Security</p>

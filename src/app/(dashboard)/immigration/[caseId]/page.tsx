@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { redirect, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { FileText, Download, Shield, AlertTriangle, CheckCircle } from "lucide-react";
+import { FileText, Download, Shield, AlertTriangle, CheckCircle, Printer } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -341,6 +341,10 @@ export default function ImmigrationWorkflowPage() {
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const isI485 = selectedForm === "I-485";
 
   return (
@@ -394,6 +398,9 @@ export default function ImmigrationWorkflowPage() {
             </Button>
             {packetReady && (
               <>
+                <Button variant="primary" onClick={handlePrint}>
+                  <Printer size={16} /> Print Form
+                </Button>
                 <Button variant="secondary" onClick={handleDownloadPdf}>
                   <Download size={16} /> Download PDF
                 </Button>
