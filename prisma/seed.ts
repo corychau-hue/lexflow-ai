@@ -43,7 +43,7 @@ async function main() {
 
   // ── Users ──────────────────────────────────────────────────────────────
   // Password hashes for "password123" (bcrypt)
-  const pwHash = "$2a$10$8K1p/a0dL1LXMIgoEDFrwOfMQkf7RnI4e4HkYBk5RqVnYb3e3XxG";
+  const pwHash = "$2b$10$7NqnOuip.5LlzhfQmvbzZ.z5OJrawZYin9t4pbilCo/aSPAXJbmWC";
 
   const users = await Promise.all([
     prisma.user.create({
