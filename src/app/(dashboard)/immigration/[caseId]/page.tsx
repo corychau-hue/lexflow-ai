@@ -174,12 +174,7 @@ export default function ImmigrationWorkflowPage() {
       .catch(() => setLoading(false));
   }, [params.caseId]);
 
-  if (status === "loading") return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading...</p></div>;
-  if (status === "unauthenticated") redirect("/login");
-  if (!session) return null;
-  if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading case...</p></div>;
-
-  // Load intake data from database
+  // Load intake data from database (must be before any conditional return per React hooks rules)
   useEffect(() => {
     if (client?.id) {
       setIntakeLoading(true);
@@ -191,6 +186,11 @@ export default function ImmigrationWorkflowPage() {
       setIntakeLoading(false);
     }
   }, [client?.id]);
+
+  if (status === "loading") return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading...</p></div>;
+  if (status === "unauthenticated") redirect("/login");
+  if (!session) return null;
+  if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading case...</p></div>;
 
   if (!caseItem || !client) {
     return (
