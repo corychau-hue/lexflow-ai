@@ -2,25 +2,59 @@
 
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Plus, Search, Mail, Phone, Globe } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { mockClients } from "@/lib/mock-data";
 import { formatDate } from "@/lib/utils";
+
+interface Client {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  language: string;
+  addressStreet?: string;
+  addressCity?: string;
+  addressState?: string;
+  addressZip?: string;
+  immigrationStatus?: string;
+  createdAt: string;
+}
 
 export default function ClientsPage() {
   const { data: session, status } = useSession();
   const [search, setSearch] = useState("");
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/clients")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch clients");
+        return res.json();
+      })
+      .then((data) => {
+        setClients(data.clients || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
 
   if (status === "loading") return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading...</p></div>;
   if (status === "unauthenticated") redirect("/login");
   if (!session) return null;
 
-  const filtered = mockClients.filter(
+  const filtered = clients.filter(
     (c) =>
       c.firstName.toLowerCase().includes(search.toLowerCase()) ||
       c.lastName.toLowerCase().includes(search.toLowerCase()) ||
@@ -31,17 +65,25 @@ export default function ClientsPage() {
     ENGLISH: "EN", VIETNAMESE: "VI", CHINESE: "ZH", SPANISH: "ES",
   };
 
+  if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading clients...</p></div>;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Clients</h1>
-          <p className="text-sm text-slate-500 mt-1">{mockClients.length} total clients</p>
+          <p className="text-sm text-slate-500 mt-1">{clients.length} total clients</p>
         </div>
         <Link href="/intake/new">
           <Button variant="primary" size="sm"><Plus size={16} /> New Client</Button>
         </Link>
       </div>
+
+      {error && (
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+          Failed to load clients: {error}
+        </div>
+      )}
 
       <Card>
         <CardHeader className="pb-3">
@@ -91,8 +133,8 @@ export default function ClientsPage() {
                     <td className="px-6 py-4 text-center">
                       <span className="text-xs font-medium px-2 py-0.5 rounded bg-slate-100">{languageLabels[client.language] || "EN"}</span>
                     </td>
-                    <td className="px-6 py-4 text-center text-sm text-slate-600">2</td>
-                    <td className="px-6 py-4 text-sm text-slate-500">{formatDate(client.dateOfBirth || new Date())}</td>
+                    <td className="px-6 py-4 text-center text-sm text-slate-600">0</td>
+                    <td className="px-6 py-4 text-sm text-slate-500">{client.createdAt ? formatDate(new Date(client.createdAt)) : ""}</td>
                     <td className="px-6 py-4 text-right">
                       <Link href={`/clients/${client.id}`}>
                         <Button variant="ghost" size="xs">View</Button>

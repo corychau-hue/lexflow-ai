@@ -10,17 +10,26 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/utils";
 import { getReviewItems, updateReviewStatus, ReviewItem } from "@/lib/review-store";
-import { mockCases } from "@/lib/mock-data";
+
+interface CaseItem {
+  id: string;
+  caseName: string;
+}
 
 export default function ReviewQueuePage() {
   const { data: session, status } = useSession();
   const [items, setItems] = useState<ReviewItem[]>([]);
+  const [cases, setCases] = useState<CaseItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadItems = useCallback(async () => {
     setLoading(true);
-    const allItems = await getReviewItems();
+    const [allItems, casesData] = await Promise.all([
+      getReviewItems(),
+      fetch("/api/cases").then((r) => r.json()),
+    ]);
     setItems(allItems);
+    setCases((casesData.cases || []));
     setLoading(false);
   }, []);
 
@@ -48,7 +57,7 @@ export default function ReviewQueuePage() {
 
   const getCaseName = (caseId?: string) => {
     if (!caseId) return "";
-    const c = mockCases.find((c) => c.id === caseId);
+    const c = cases.find((cs) => cs.id === caseId);
     return c?.caseName || "";
   };
 

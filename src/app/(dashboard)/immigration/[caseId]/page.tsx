@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/textarea";
-import { mockCases, mockClients } from "@/lib/mock-data";
 import { getClientIntake, IntakeData } from "@/lib/intake-store";
 import { addReviewItem } from "@/lib/review-store";
 import { I485Form } from "@/components/immigration/i485-form";
@@ -31,6 +30,110 @@ const countryByLanguage: Record<string, string> = {
   ENGLISH: "United States",
 };
 
+interface CaseData {
+  id: string;
+  caseName: string;
+  practiceArea: string;
+}
+
+interface ClientData {
+  id: string;
+  firstName: string;
+  lastName: string;
+  language: string;
+  dateOfBirth: string;
+  email?: string;
+  phone?: string;
+  addressStreet?: string;
+  addressCity?: string;
+  addressState?: string;
+  addressZip?: string;
+  immigrationStatus?: string;
+}
+
+interface FormattedClientData {
+  fullName: string;
+  dateOfBirth: string;
+  countryOfBirth: string;
+  citizenship: string;
+  aNumber: string;
+  immigrationStatus: string;
+  dateOfEntry: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  email: string;
+  phone: string;
+  gender?: string;
+  maritalStatus?: string;
+  otherNames?: string;
+  ssn?: string;
+  height?: string;
+  weight?: string;
+  hairColor?: string;
+  eyeColor?: string;
+  smsConsent?: boolean;
+  spouseName?: string;
+  spouseDOB?: string;
+  spouseBirth?: string;
+  spouseANumber?: string;
+  spouseCitizen?: boolean;
+  spouseStatus?: string;
+  marriageDate?: string;
+  marriagePlace?: string;
+  priorMarriages?: string;
+  priorMarriageEnd?: string;
+  priorMarriageEndDate?: string;
+  childrenCount?: string;
+  childName?: string;
+  childDOB?: string;
+  childCitizen?: boolean;
+  motherName?: string;
+  motherCountry?: string;
+  fatherName?: string;
+  fatherCountry?: string;
+  parentUSCitizen?: boolean;
+  siblingsCount?: string;
+  petitionerRelationship?: string;
+  eduLevel?: string;
+  eduSchool?: string;
+  eduLocation?: string;
+  eduDegree?: string;
+  eduFrom?: string;
+  eduTo?: string;
+  employer?: string;
+  jobTitle?: string;
+  empStart?: string;
+  empAddress?: string;
+  empCity?: string;
+  empState?: string;
+  empDuties?: string;
+  prevEmployer?: string;
+  prevTitle?: string;
+  prevStart?: string;
+  prevEnd?: string;
+  i94Number?: string;
+  lastArrivalPlace?: string;
+  statusAtEntry?: string;
+  departureHistory?: string;
+  statusExpired?: boolean;
+  waiverNeeded?: boolean;
+  removalProceedings?: boolean;
+  unauthorizedWork?: boolean;
+  visaViolations?: boolean;
+  publicBenefits?: boolean;
+  militaryService?: boolean;
+  arrested?: boolean;
+  arrestExplanation?: string;
+  convicted?: boolean;
+  convictionExplanation?: string;
+  hasPriorFilings?: boolean;
+  priorFormType?: string;
+  priorFilingDate?: string;
+  priorReceiptNumber?: string;
+}
+
 export default function ImmigrationWorkflowPage() {
   const { data: session, status } = useSession();
   const params = useParams();
@@ -39,13 +142,42 @@ export default function ImmigrationWorkflowPage() {
   const [packetSubmitted, setPacketSubmitted] = useState(false);
   const [intakeData, setIntakeData] = useState<IntakeData | undefined>(undefined);
   const [intakeLoading, setIntakeLoading] = useState(true);
+  const [caseItem, setCaseItem] = useState<CaseData | null>(null);
+  const [client, setClient] = useState<ClientData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!params.caseId) return;
+    fetch(`/api/cases/${params.caseId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setCaseItem({ id: data.case.id, caseName: data.case.caseName, practiceArea: data.case.practiceArea });
+          const c = data.case.client;
+          setClient({
+            id: c.id,
+            firstName: c.firstName,
+            lastName: c.lastName,
+            language: c.language || "ENGLISH",
+            dateOfBirth: c.dateOfBirth || "1988-01-01",
+            email: c.email || "",
+            phone: c.phone || "",
+            addressStreet: c.addressStreet || "",
+            addressCity: c.addressCity || "",
+            addressState: c.addressState || "",
+            addressZip: c.addressZip || "",
+            immigrationStatus: c.immigrationStatus || "",
+          });
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [params.caseId]);
 
   if (status === "loading") return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading...</p></div>;
   if (status === "unauthenticated") redirect("/login");
   if (!session) return null;
-
-  const caseItem = mockCases.find((c) => c.id === params.caseId);
-  const client = caseItem ? mockClients.find((c) => c.id === caseItem.clientId) : null;
+  if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading case...</p></div>;
 
   // Load intake data from database
   useEffect(() => {
@@ -69,22 +201,22 @@ export default function ImmigrationWorkflowPage() {
   }
 
   const country = client.language ? countryByLanguage[client.language] || "United States" : "United States";
-  const dob = client.dateOfBirth instanceof Date ? client.dateOfBirth.toISOString().split("T")[0] : "1988-01-01";
+  const dob = client.dateOfBirth ? new Date(client.dateOfBirth).toISOString().split("T")[0] : "1988-01-01";
 
-  const clientData = intakeData ? {
+  const clientData: FormattedClientData = intakeData ? {
     fullName: `${intakeData.personal.lastName}, ${intakeData.personal.firstName}`,
     dateOfBirth: intakeData.personal.dateOfBirth || dob,
     countryOfBirth: intakeData.personal.countryOfBirth || country,
     citizenship: intakeData.personal.countryOfCitizenship || country,
     aNumber: intakeData.immigration.aNumber || "A123 456 789",
-    immigrationStatus: intakeData.immigration.immigrationStatus || client?.immigrationStatus || "N/A",
+    immigrationStatus: intakeData.immigration.immigrationStatus || client.immigrationStatus || "N/A",
     dateOfEntry: intakeData.immigration.lastArrivalDate || "2022-06-20",
-    address: intakeData.address.street || client?.addressStreet || "N/A",
-    city: intakeData.address.city || client?.addressCity || "N/A",
-    state: intakeData.address.state || client?.addressState || "N/A",
-    zip: intakeData.address.zip || client?.addressZip || "N/A",
-    email: intakeData.personal.email || client?.email || "",
-    phone: intakeData.personal.phone || client?.phone || "",
+    address: intakeData.address.street || client.addressStreet || "N/A",
+    city: intakeData.address.city || client.addressCity || "N/A",
+    state: intakeData.address.state || client.addressState || "N/A",
+    zip: intakeData.address.zip || client.addressZip || "N/A",
+    email: intakeData.personal.email || client.email || "",
+    phone: intakeData.personal.phone || client.phone || "",
     gender: intakeData.personal.gender,
     maritalStatus: intakeData.family.maritalStatus,
     otherNames: intakeData.personal.otherNames,
@@ -164,8 +296,8 @@ export default function ImmigrationWorkflowPage() {
     city: client.addressCity || "N/A",
     state: client.addressState || "N/A",
     zip: client.addressZip || "N/A",
-    email: client.email,
-    phone: client.phone,
+    email: client.email || "",
+    phone: client.phone || "",
   };
 
   const intakeId = intakeData?.id;
@@ -254,7 +386,7 @@ export default function ImmigrationWorkflowPage() {
               <Select
                 options={formTypes}
                 value={selectedForm}
-                onChange={(e) => { setSelectedForm(e.target.value); setPacketReady(false); setPacketSubmitted(false); }}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setSelectedForm(e.target.value); setPacketReady(false); setPacketSubmitted(false); }}
               />
             </div>
             <Button variant="primary" onClick={handleGeneratePacket}>

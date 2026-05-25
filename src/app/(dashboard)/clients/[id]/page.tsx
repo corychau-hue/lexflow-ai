@@ -2,25 +2,72 @@
 
 import { useSession } from "next-auth/react";
 import { redirect, useParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Mail, Phone, MapPin, Globe, Calendar, FileText, Briefcase } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Briefcase, Globe } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { mockClients, mockCases } from "@/lib/mock-data";
-import { formatDate, getPracticeAreaColor } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
+
+interface Client {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  language: string;
+  eSignatureConsent: boolean;
+  immigrationStatus?: string;
+  addressStreet?: string;
+  addressCity?: string;
+  addressState?: string;
+  addressZip?: string;
+  createdAt: string;
+}
+
+interface CaseItem {
+  id: string;
+  caseName: string;
+  caseType: string;
+  practiceArea: string;
+  status: string;
+  clientId: string;
+}
 
 export default function ClientDetailPage() {
   const { data: session, status } = useSession();
   const params = useParams();
-  const client = mockClients.find((c) => c.id === params.id);
+  const [client, setClient] = useState<Client | null>(null);
+  const [clientCases, setClientCases] = useState<CaseItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!params.id) return;
+    Promise.all([
+      fetch(`/api/clients/${params.id}`).then((r) => r.json()),
+      fetch("/api/cases").then((r) => r.json()),
+    ])
+      .then(([clientData, casesData]) => {
+        if (!clientData.success) throw new Error(clientData.message || "Client not found");
+        setClient(clientData.client);
+        setClientCases((casesData.cases || []).filter((c: CaseItem) => c.clientId === params.id));
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, [params.id]);
 
   if (status === "loading") return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading...</p></div>;
   if (status === "unauthenticated") redirect("/login");
   if (!session) return null;
+  if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading client...</p></div>;
+  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
   if (!client) return <div className="p-8 text-center text-slate-500">Client not found</div>;
-
-  const clientCases = mockCases.filter((c) => c.clientId === client.id);
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -58,7 +105,7 @@ export default function ClientDetailPage() {
           </div>
           <div className="flex gap-4 mt-4 pt-4 border-t border-slate-100">
             {client.immigrationStatus && <Badge variant="status" status={client.immigrationStatus}>{client.immigrationStatus}</Badge>}
-            <span className="text-xs text-slate-400 flex items-center gap-1"><Calendar size={12} />Client since {formatDate(client.createdAt)}</span>
+            <span className="text-xs text-slate-400 flex items-center gap-1"><Calendar size={12} />Client since {formatDate(new Date(client.createdAt))}</span>
             <span className="text-xs text-slate-400 flex items-center gap-1"><Globe size={12} />{client.language}</span>
           </div>
         </CardContent>
@@ -103,7 +150,7 @@ export default function ClientDetailPage() {
           <Card>
             <CardHeader><CardTitle className="text-sm">Client Information</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <div><span className="text-slate-500">Date of Birth:</span> <span className="text-slate-800">{client.dateOfBirth ? formatDate(client.dateOfBirth) : "N/A"}</span></div>
+              <div><span className="text-slate-500">Date of Birth:</span> <span className="text-slate-800">{client.dateOfBirth ? formatDate(new Date(client.dateOfBirth)) : "N/A"}</span></div>
               <div><span className="text-slate-500">Language:</span> <span className="text-slate-800">{client.language}</span></div>
               <div><span className="text-slate-500">E-Sign Consent:</span> <span className={client.eSignatureConsent ? "text-green-600" : "text-amber-600"}>{client.eSignatureConsent ? "Yes" : "No"}</span></div>
               <div><span className="text-slate-500">Immigration Status:</span> <span className="text-slate-800">{client.immigrationStatus || "N/A"}</span></div>

@@ -4,19 +4,19 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const clientId = searchParams.get("clientId");
+    const caseId = searchParams.get("caseId");
 
     const where: Record<string, unknown> = {};
-    if (clientId) where.clientId = clientId;
+    if (caseId) where.caseId = caseId;
 
-    const cases = await prisma.case.findMany({
+    const deadlines = await prisma.deadline.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: { dueDate: "asc" },
     });
-    return NextResponse.json({ cases, total: cases.length });
+    return NextResponse.json({ deadlines, total: deadlines.length });
   } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Failed to fetch cases" },
+      { success: false, message: "Failed to fetch deadlines" },
       { status: 500 }
     );
   }
@@ -25,23 +25,21 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const caseItem = await prisma.case.create({
+    const deadline = await prisma.deadline.create({
       data: {
-        caseName: body.caseName,
-        practiceArea: body.practiceArea,
-        caseType: body.caseType || "",
+        title: body.title,
         description: body.description || null,
-        clientId: body.clientId,
-        assignedUserId: body.assignedUserId || null,
-        createdById: body.createdById || null,
+        dueDate: new Date(body.dueDate),
+        reminder: body.reminder !== false,
+        caseId: body.caseId,
       },
     });
-    return NextResponse.json({ success: true, case: caseItem }, { status: 201 });
+    return NextResponse.json({ success: true, deadline }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to create case",
+        message: "Failed to create deadline",
         error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 400 }

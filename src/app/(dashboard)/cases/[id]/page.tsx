@@ -2,16 +2,68 @@
 
 import { useSession } from "next-auth/react";
 import { redirect, useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus, Clock, CheckCircle, FileText, MessageSquare, StickyNote, ListChecks, Bot, DollarSign, Shield } from "lucide-react";
+import { ArrowLeft, Plus, Clock, CheckCircle, FileText, StickyNote, Bot, Briefcase, Shield } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { mockCases, mockClients, mockTasks, mockDeadlines, mockDocuments, practiceAreaLabels } from "@/lib/mock-data";
+import { practiceAreaLabels } from "@/lib/mock-data";
 import { formatDate, daysUntil } from "@/lib/utils";
+
+interface TaskItem {
+  id: string;
+  title: string;
+  description?: string;
+  status: string;
+  dueDate?: string;
+  priority?: string;
+}
+
+interface DeadlineItem {
+  id: string;
+  title: string;
+  description?: string;
+  dueDate: string;
+}
+
+interface NoteItem {
+  id: string;
+  content: string;
+  type?: string;
+  createdAt: string;
+}
+
+interface DocumentItem {
+  id: string;
+  originalName: string;
+  documentType: string;
+  isProcessed: boolean;
+  fileType: string;
+}
+
+interface ClientInfo {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
+
+interface CaseDetail {
+  id: string;
+  caseName: string;
+  practiceArea: string;
+  caseType: string;
+  status: string;
+  description?: string;
+  assignedUserId?: string;
+  createdAt: string;
+  client: ClientInfo;
+  tasks: TaskItem[];
+  deadlines: DeadlineItem[];
+  notes: NoteItem[];
+  documents: DocumentItem[];
+}
 
 type Tab = "overview" | "documents" | "tasks" | "deadlines" | "notes" | "ai-summaries" | "checklist";
 
@@ -20,18 +72,37 @@ export default function CaseDetailPage() {
   const params = useParams();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [newNote, setNewNote] = useState("");
+  const [caseItem, setCaseItem] = useState<CaseDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!params.id) return;
+    fetch(`/api/cases/${params.id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.success) throw new Error(data.message || "Case not found");
+        setCaseItem(data.case);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, [params.id]);
 
   if (status === "loading") return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading...</p></div>;
   if (status === "unauthenticated") redirect("/login");
   if (!session) return null;
-
-  const caseItem = mockCases.find((c) => c.id === params.id);
+  if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading case...</p></div>;
+  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
   if (!caseItem) return <div className="p-8 text-center text-slate-500">Case not found</div>;
 
-  const client = mockClients.find((c) => c.id === caseItem.clientId);
-  const tasks = mockTasks.filter((t) => t.caseId === caseItem.id);
-  const deadlines = mockDeadlines.filter((d) => d.caseId === caseItem.id);
-  const documents = mockDocuments.filter((d) => d.caseId === caseItem.id);
+  const client = caseItem.client;
+  const tasks = caseItem.tasks || [];
+  const deadlines = caseItem.deadlines || [];
+  const documents = caseItem.documents || [];
+  const notes = caseItem.notes || [];
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: "overview", label: "Overview", icon: <FileText size={14} /> },
@@ -40,7 +111,7 @@ export default function CaseDetailPage() {
     { key: "deadlines", label: "Deadlines", icon: <Clock size={14} /> },
     { key: "notes", label: "Notes", icon: <StickyNote size={14} /> },
     { key: "ai-summaries", label: "AI Summaries", icon: <Bot size={14} /> },
-    { key: "checklist", label: "Checklist", icon: <ListChecks size={14} /> },
+    { key: "checklist", label: "Checklist", icon: <Briefcase size={14} /> },
   ];
 
   return (
@@ -108,7 +179,7 @@ export default function CaseDetailPage() {
               <div className="flex justify-between"><span className="text-slate-500">Practice Area</span><span>{(practiceAreaLabels as Record<string, string>)[caseItem.practiceArea]}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Case Type</span><span>{caseItem.caseType}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Status</span><Badge variant="status" status={caseItem.status} /></div>
-              <div className="flex justify-between"><span className="text-slate-500">Created</span><span>{formatDate(caseItem.createdAt)}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Created</span><span>{formatDate(new Date(caseItem.createdAt))}</span></div>
             </CardContent>
           </Card>
           <Card>
@@ -128,7 +199,7 @@ export default function CaseDetailPage() {
                   <p className="text-xs text-slate-500">Deadlines</p>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-amber-600">{deadlines.filter(d => daysUntil(d.dueDate) <= 0).length}</p>
+                  <p className="text-2xl font-bold text-amber-600">{deadlines.filter(d => daysUntil(new Date(d.dueDate)) <= 0).length}</p>
                   <p className="text-xs text-slate-500">Overdue</p>
                 </div>
               </div>
@@ -149,7 +220,7 @@ export default function CaseDetailPage() {
                       <input type="checkbox" className="rounded border-slate-300" checked={t.status === "COMPLETED"} readOnly />
                       <div>
                         <p className={`text-sm font-medium ${t.status === "COMPLETED" ? "line-through text-slate-400" : "text-slate-800"}`}>{t.title}</p>
-                        {t.dueDate && <p className="text-xs text-slate-500">Due: {formatDate(t.dueDate)}</p>}
+                        {t.dueDate && <p className="text-xs text-slate-500">Due: {formatDate(new Date(t.dueDate))}</p>}
                       </div>
                     </div>
                     <Badge variant="status" status={t.status} />
@@ -167,12 +238,12 @@ export default function CaseDetailPage() {
           <CardContent>
             <div className="space-y-3">
               {deadlines.map((d) => {
-                const days = daysUntil(d.dueDate);
+                const days = daysUntil(new Date(d.dueDate));
                 return (
                   <div key={d.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-200">
                     <div>
                       <p className="text-sm font-medium text-slate-800">{d.title}</p>
-                      <p className="text-xs text-slate-500">Due: {formatDate(d.dueDate)}</p>
+                      <p className="text-xs text-slate-500">Due: {formatDate(new Date(d.dueDate))}</p>
                     </div>
                     <Badge variant="status" status={days <= 0 ? "OVERDUE" : days <= 7 ? "PENDING" : "ACTIVE"}>
                       {days <= 0 ? "Overdue" : `${days} days`}
@@ -194,14 +265,16 @@ export default function CaseDetailPage() {
               <Button variant="primary" size="sm">Add Note</Button>
             </div>
             <div className="space-y-3 pt-4 border-t border-slate-200">
-              <div className="p-3 rounded-lg bg-slate-50">
-                <p className="text-sm text-slate-700">Initial consultation completed. Client provided all required identification documents. Need to follow up on missing tax returns.</p>
-                <p className="text-xs text-slate-400 mt-2">James Rodriguez &middot; 2 days ago</p>
-              </div>
-              <div className="p-3 rounded-lg bg-slate-50">
-                <p className="text-sm text-slate-700">Reviewed case file. All initial pleadings ready for filing. Awaiting client signature on engagement letter.</p>
-                <p className="text-xs text-slate-400 mt-2">Maria Kim &middot; 5 days ago</p>
-              </div>
+              {notes.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-4">No notes yet</p>
+              ) : (
+                notes.map((note) => (
+                  <div key={note.id} className="p-3 rounded-lg bg-slate-50">
+                    <p className="text-sm text-slate-700">{note.content}</p>
+                    <p className="text-xs text-slate-400 mt-2">{formatDate(new Date(note.createdAt))}</p>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -219,7 +292,7 @@ export default function CaseDetailPage() {
                       <FileText size={16} className="text-slate-400" />
                       <div>
                         <p className="text-sm font-medium text-slate-800">{d.originalName}</p>
-                        <p className="text-xs text-slate-500">{d.documentType.replace(/_/g, " ")}</p>
+                        <p className="text-xs text-slate-500">{d.documentType?.replace(/_/g, " ")}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -252,7 +325,7 @@ export default function CaseDetailPage() {
 
       {activeTab === "checklist" && (
         <Card>
-          <CardHeader><CardTitle className="flex items-center justify-between"><span>Document Checklist</span><Link href={`/checklists?caseId=${caseItem.id}&practice=${caseItem.practiceArea}`}><Button variant="primary" size="xs"><ListChecks size={14} /> Generate</Button></Link></CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center justify-between"><span>Document Checklist</span><Link href={`/checklists?caseId=${caseItem.id}&practice=${caseItem.practiceArea}`}><Button variant="primary" size="xs"><Briefcase size={14} /> Generate</Button></Link></CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-2">
               {[
@@ -264,7 +337,7 @@ export default function CaseDetailPage() {
                 "Tax returns (last 3 years)",
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3 p-2">
-                  <input type="checkbox" className="rounded border-slate-300" checked={i < 2} readOnly />
+                  <input type="checkbox" className="rounded border-slate-300" defaultChecked={i < 2} readOnly />
                   <span className={`text-sm ${i < 2 ? "text-slate-400 line-through" : "text-slate-700"}`}>{item}</span>
                 </div>
               ))}

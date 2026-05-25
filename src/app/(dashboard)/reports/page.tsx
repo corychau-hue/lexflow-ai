@@ -2,46 +2,80 @@
 
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
+import { useState, useEffect } from "react";
 import { BarChart3, Briefcase, Users, FileText, Clock, TrendingUp, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { mockCases, mockLeads, mockTasks, mockClients } from "@/lib/mock-data";
-import { practiceAreaLabels } from "@/lib/mock-data";
-
-const reports = [
-  { label: "Open Cases", value: mockCases.filter((c) => c.status === "ACTIVE").length, icon: Briefcase, color: "text-blue-600", bg: "bg-blue-50" },
-  { label: "Pending Intakes", value: "8", icon: Users, color: "text-purple-600", bg: "bg-purple-50" },
-  { label: "Active Leads", value: mockLeads.filter((l) => l.status !== "DECLINED" && l.status !== "RETAINED").length, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
-  { label: "Pending Tasks", value: mockTasks.filter((t) => t.status !== "COMPLETED").length, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
-  { label: "Total Clients", value: mockClients.length, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
-  { label: "Total Documents", value: 12, icon: FileText, color: "text-slate-600", bg: "bg-slate-50" },
-];
-
-const casesByArea = [
-  { area: "Immigration", count: 10, color: "text-blue-600" },
-  { area: "Personal Injury", count: 5, color: "text-red-600" },
-  { area: "Family Law", count: 3, color: "text-purple-600" },
-  { area: "Estate Planning", count: 4, color: "text-green-600" },
-  { area: "Real Property", count: 1, color: "text-amber-600" },
-  { area: "Business/Tax", count: 1, color: "text-indigo-600" },
-];
-
-const recentReports = [
-  { name: "Monthly Case Activity Report", date: "May 2026", type: "PDF" },
-  { name: "Staff Productivity Summary", date: "Q2 2026", type: "PDF" },
-  { name: "Lead Conversion Analysis", date: "May 2026", type: "CSV" },
-  { name: "Deadline Compliance Report", date: "Week 20", type: "PDF" },
-];
 
 export default function ReportsPage() {
   const { data: session, status } = useSession();
+  const [stats, setStats] = useState({
+    openCases: 0,
+    totalClients: 0,
+    activeLeads: 0,
+    pendingTasks: 0,
+    totalCases: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/cases").then((r) => r.json()),
+      fetch("/api/clients").then((r) => r.json()),
+      fetch("/api/leads").then((r) => r.json()),
+      fetch("/api/tasks").then((r) => r.json()),
+    ])
+      .then(([casesData, clientsData, leadsData, tasksData]) => {
+        const cases = casesData.cases || [];
+        const clients = clientsData.clients || [];
+        const leads = leadsData.leads || [];
+        const tasks = tasksData.tasks || [];
+
+        setStats({
+          openCases: cases.filter((c: any) => c.status === "ACTIVE").length,
+          totalCases: cases.length,
+          totalClients: clients.length,
+          activeLeads: leads.filter((l: any) => l.status !== "DECLINED" && l.status !== "RETAINED").length,
+          pendingTasks: tasks.filter((t: any) => t.status !== "COMPLETED").length,
+        });
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   if (status === "loading") return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading...</p></div>;
   if (status === "unauthenticated") redirect("/login");
   if (!session) return null;
 
+  const reportCards = [
+    { label: "Open Cases", value: stats.openCases, icon: Briefcase, color: "text-blue-600", bg: "bg-blue-50" },
+    { label: "Total Clients", value: stats.totalClients, icon: Users, color: "text-purple-600", bg: "bg-purple-50" },
+    { label: "Active Leads", value: stats.activeLeads, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
+    { label: "Pending Tasks", value: stats.pendingTasks, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
+    { label: "Total Cases", value: stats.totalCases, icon: Briefcase, color: "text-indigo-600", bg: "bg-indigo-50" },
+    { label: "Total Documents", value: "—", icon: FileText, color: "text-slate-600", bg: "bg-slate-50" },
+  ];
+
+  const casesByArea = [
+    { area: "Immigration", count: 10, color: "text-blue-600" },
+    { area: "Personal Injury", count: 5, color: "text-red-600" },
+    { area: "Family Law", count: 3, color: "text-purple-600" },
+    { area: "Estate Planning", count: 4, color: "text-green-600" },
+    { area: "Real Property", count: 1, color: "text-amber-600" },
+    { area: "Business/Tax", count: 1, color: "text-indigo-600" },
+  ];
+
+  const recentReports = [
+    { name: "Monthly Case Activity Report", date: "May 2026", type: "PDF" },
+    { name: "Staff Productivity Summary", date: "Q2 2026", type: "PDF" },
+    { name: "Lead Conversion Analysis", date: "May 2026", type: "CSV" },
+    { name: "Deadline Compliance Report", date: "Week 20", type: "PDF" },
+  ];
+
   const total = casesByArea.reduce((sum, a) => sum + a.count, 0);
+
+  if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading reports...</p></div>;
 
   return (
     <div className="space-y-6">
@@ -55,7 +89,7 @@ export default function ReportsPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        {reports.map((r) => (
+        {reportCards.map((r) => (
           <Card key={r.label}>
             <CardContent className="p-5 flex items-center gap-4">
               <div className={`p-3 rounded-lg ${r.bg}`}>

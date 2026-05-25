@@ -2,35 +2,54 @@
 
 import { useSession } from "next-auth/react";
 import { redirect, useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Bot, Check, X, Edit3, AlertTriangle, RefreshCw, SaveAll } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { mockDocuments } from "@/lib/mock-data";
 import { formatFileSize } from "@/lib/utils";
 import { getAIService } from "@/lib/ai-service-core";
 import type { ExtractedField } from "@/types";
 
+interface DocumentData {
+  id: string;
+  originalName: string;
+  documentType: string;
+  fileSize: number;
+  fileType: string;
+}
+
 export default function DocumentReviewPage() {
   const { data: session, status } = useSession();
   const params = useParams();
+  const [doc, setDoc] = useState<DocumentData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [fields, setFields] = useState<ExtractedField[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const [extracted, setExtracted] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
+  useEffect(() => {
+    if (!params.id) return;
+    fetch(`/api/documents/${params.id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setDoc(data.document);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [params.id]);
+
   if (status === "loading") return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading...</p></div>;
   if (status === "unauthenticated") redirect("/login");
   if (!session) return null;
-
-  const doc = mockDocuments.find((d) => d.id === params.id);
+  if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading document...</p></div>;
   if (!doc) return <div className="p-8 text-center text-slate-500">Document not found</div>;
 
   const handleExtract = async () => {
-    setLoading(true);
+    setExtracting(true);
     try {
       const service = getAIService();
       const extractedFields = await service.extractFields({
@@ -43,7 +62,7 @@ export default function DocumentReviewPage() {
       setFields([]);
       setExtracted(true);
     } finally {
-      setLoading(false);
+      setExtracting(false);
     }
   };
 
@@ -91,8 +110,8 @@ export default function DocumentReviewPage() {
             </div>
             <div className="flex gap-2">
               {!extracted && (
-                <Button variant="primary" onClick={handleExtract} disabled={loading}>
-                  {loading ? <><RefreshCw size={16} className="animate-spin" /> Extracting...</> : <><Bot size={16} /> Run AI Extraction</>}
+                <Button variant="primary" onClick={handleExtract} disabled={extracting}>
+                  {extracting ? <><RefreshCw size={16} className="animate-spin" /> Extracting...</> : <><Bot size={16} /> Run AI Extraction</>}
                 </Button>
               )}
             </div>

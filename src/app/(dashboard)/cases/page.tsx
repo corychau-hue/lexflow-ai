@@ -2,45 +2,66 @@
 
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/textarea";
-import { mockCases, mockClients, practiceAreaLabels } from "@/lib/mock-data";
-import { formatDate, getPracticeAreaColor, getStatusColor } from "@/lib/utils";
+import { practiceAreaLabels } from "@/lib/mock-data";
+import { formatDate } from "@/lib/utils";
+
+interface CaseItem {
+  id: string;
+  caseName: string;
+  caseType: string;
+  practiceArea: string;
+  status: string;
+  clientId: string;
+  createdAt: string;
+}
 
 export default function CasesPage() {
   const { data: session, status } = useSession();
   const [search, setSearch] = useState("");
   const [filterPractice, setFilterPractice] = useState("");
+  const [cases, setCases] = useState<CaseItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/cases")
+      .then((res) => res.json())
+      .then((data) => {
+        setCases(data.cases || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   if (status === "loading") return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading...</p></div>;
   if (status === "unauthenticated") redirect("/login");
   if (!session) return null;
 
-  const filtered = mockCases.filter((c) => {
+  const filtered = cases.filter((c) => {
     const matchesSearch = c.caseName.toLowerCase().includes(search.toLowerCase());
     const matchesPractice = !filterPractice || c.practiceArea === filterPractice;
     return matchesSearch && matchesPractice;
   });
 
-  const getClientName = (clientId: string) => {
-    const client = mockClients.find((c) => c.id === clientId);
-    return client ? `${client.firstName} ${client.lastName}` : "Unknown";
-  };
+  if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading cases...</p></div>;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Cases</h1>
-          <p className="text-sm text-slate-500 mt-1">{mockCases.length} total cases</p>
+          <p className="text-sm text-slate-500 mt-1">{cases.length} total cases</p>
         </div>
-        <Button variant="primary" size="sm"><Plus size={16} /> New Case</Button>
+        <Link href="/cases/new">
+          <Button variant="primary" size="sm"><Plus size={16} /> New Case</Button>
+        </Link>
       </div>
 
       <Card>
@@ -89,13 +110,13 @@ export default function CasesPage() {
                         {c.caseName}
                       </Link>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{getClientName(c.clientId)}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{c.clientId}</td>
                     <td className="px-6 py-4">
                       <Badge variant="status" status={c.practiceArea}>{(practiceAreaLabels as Record<string, string>)[c.practiceArea]}</Badge>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">{c.caseType}</td>
                     <td className="px-6 py-4 text-center"><Badge variant="status" status={c.status} /></td>
-                    <td className="px-6 py-4 text-sm text-slate-500">{formatDate(c.createdAt)}</td>
+                    <td className="px-6 py-4 text-sm text-slate-500">{formatDate(new Date(c.createdAt))}</td>
                     <td className="px-6 py-4 text-right">
                       <Link href={`/cases/${c.id}`}><Button variant="ghost" size="xs">View</Button></Link>
                     </td>
