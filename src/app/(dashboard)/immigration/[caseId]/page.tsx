@@ -404,6 +404,21 @@ export default function ImmigrationWorkflowPage() {
 
   return (
     <div className="space-y-6 max-w-6xl">
+      {/* ── Debug Panel ── */}
+      <details className="no-print bg-slate-50 border border-slate-300 rounded p-2 text-[10px] font-mono">
+        <summary className="cursor-pointer text-slate-500 hover:text-slate-700 font-semibold">Debug: Form State</summary>
+        <div className="mt-1 space-y-0.5 text-slate-600">
+          <div>packetReady: {String(packetReady)}</div>
+          <div>intakeLoading: {String(intakeLoading)}</div>
+          <div>selectedForm: {selectedForm}</div>
+          <div>SelectedComponent: {SelectedFormComponent ? "defined" : "UNDEFINED"}</div>
+          <div>intakeData: {intakeData ? "loaded" : "null"}</div>
+          <div>clientData.fullName: {clientData.fullName}</div>
+          <div>clientData.aNumber: {clientData.aNumber}</div>
+          <div>clientData.immigrationStatus: {clientData.immigrationStatus}</div>
+          <div>clientData.address: {clientData.address}</div>
+        </div>
+      </details>
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Immigration Workflow</h1>
         <p className="text-sm text-slate-500 mt-1">
@@ -507,7 +522,9 @@ export default function ImmigrationWorkflowPage() {
 
       {/* USCIS Form Data Packet */}
       {packetReady && !intakeLoading && SelectedFormComponent && (
-        <SelectedFormComponent clientData={clientData} intakeId={intakeId} />
+        <div className="form-packet-wrapper">
+          <SelectedFormComponent clientData={clientData} intakeId={intakeId} />
+        </div>
       )}
     </div>
   );
