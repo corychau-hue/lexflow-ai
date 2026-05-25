@@ -167,12 +167,105 @@ body {
   margin: 0 auto;
 }
 
+/* Header top row: edition on left, OMB on right */
+.form-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+.form-header-edition {
+  font-size: 8pt;
+  color: #333;
+  font-family: system-ui, sans-serif;
+}
+.form-header-right {
+  text-align: right;
+}
+.form-header-omb {
+  font-size: 8pt;
+  font-weight: 700;
+  color: #000;
+  font-family: system-ui, sans-serif;
+}
+.form-header-exp {
+  font-size: 7pt;
+  color: #555;
+  font-family: system-ui, sans-serif;
+}
+
+/* Agency header */
+.form-header-agency {
+  text-align: center;
+  border-bottom: 2px solid #000;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+}
+.form-agency-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #000;
+  font-family: system-ui, sans-serif;
+}
+.form-agency-sub {
+  font-size: 10px;
+  color: #333;
+  font-family: system-ui, sans-serif;
+}
+
+/* Form title */
+.form-header-title-block {
+  text-align: center;
+  margin: 6px 0 8px 0;
+}
 .form-title {
   font-size: 20px;
   font-weight: 800;
   color: #000;
   letter-spacing: 1px;
-  margin-top: 6px;
+}
+.form-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: #000;
+  font-family: system-ui, sans-serif;
+  margin-top: 2px;
+}
+.form-subtitle-sub {
+  font-size: 10px;
+  color: #333;
+  font-family: system-ui, sans-serif;
+}
+
+/* For USCIS Use Only box */
+.form-uscis-only {
+  border: 2px solid #000;
+  margin-bottom: 12px;
+  background: #f8f8f8;
+}
+.form-uscis-only-header {
+  background: #000;
+  color: #fff;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: system-ui, sans-serif;
+}
+.form-uscis-only-body {
+  padding: 6px 10px;
+}
+.form-uscis-only-row {
+  display: flex;
+  align-items: center;
+  padding: 2px 0;
+  font-size: 9pt;
+  font-family: system-ui, sans-serif;
+}
+.form-underline-wide {
+  flex: 1;
+  border-bottom: 1px solid #555;
+  margin-left: 6px;
+  min-height: 18px;
 }
 
 /* Section — heavy border like a real gov form */
@@ -210,48 +303,65 @@ body {
 
 /* Field — looks like a paper form with typed-in answers */
 .form-field {
-  display: flex;
-  align-items: baseline;
-  padding: 3px 0;
-  min-height: 26px;
+  padding: 4px 0;
+  min-height: 32px;
 }
 
-.form-label {
-  font-size: 9pt;
+.form-field-label {
+  font-size: 8.5pt;
   font-weight: 600;
-  color: #000;
-  min-width: 260px;
-  flex-shrink: 0;
+  color: #222;
   font-family: system-ui, -apple-system, sans-serif;
+  display: block;
+  margin-bottom: 1px;
 }
 
-.form-value {
+/* Underline where the value is written */
+.form-field-line {
+  border-bottom: 1px solid #555;
+  min-height: 22px;
+  padding: 1px 4px;
+}
+
+.form-field-value {
   font-family: "Courier New", Courier, "Liberation Mono", monospace;
   font-size: 10pt;
   color: #000;
-  border-bottom: 1px solid #555;
-  padding: 0 6px;
-  min-width: 120px;
-  flex: 1;
-  letter-spacing: 0.3px;
   font-weight: 500;
+  letter-spacing: 0.3px;
 }
 
 /* Checkbox — Unicode box style */
+.form-checkbox-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 12px;
+}
 .form-checkbox {
-  font-size: 14px;
+  font-family: "Courier New", Courier, "Liberation Mono", monospace;
+  font-size: 16px;
   line-height: 1;
-  margin-right: 4px;
+  color: #000;
+}
+.form-checkbox-label {
+  font-family: "Courier New", Courier, "Liberation Mono", monospace;
+  font-size: 10pt;
   color: #000;
 }
 
-/* Yes/No inline fields */
-.form-yesno {
-  display: inline-flex;
+/* Yes/No inline row — fills the underline area */
+.form-yesno-row {
+  display: flex;
   align-items: center;
-  gap: 2px;
-  font-family: "Courier New", Courier, "Liberation Mono", monospace;
-  font-size: 10pt;
+  gap: 4px;
+  padding: 2px 4px;
+  min-height: 24px;
+}
+
+/* For fields that have Yes/No, the underline area wraps the checkboxes */
+.form-field .form-yesno-row {
+  border-bottom: 1px solid #555;
 }
 
 .form-instruction {
@@ -272,13 +382,24 @@ body {
   flex: 1;
 }
 
-.form-grid-row .form-label {
-  font-size: 8pt;
-  min-width: auto;
+.form-grid-row .form-field-label {
+  font-size: 7.5pt;
   white-space: nowrap;
 }
 
 /* Signature block */
+.form-signature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-top: 8px;
+}
+.form-signature-item {
+  padding: 2px 0;
+}
+.form-signature-item .form-field-label {
+  font-size: 8pt;
+}
 .form-signature-line {
   border-bottom: 1px solid #000;
   height: 28px;
@@ -292,9 +413,16 @@ body {
   }
   .form-field {
     padding: 2px 0;
-    min-height: 22px;
+    min-height: 26px;
   }
-  .form-value {
-    border-bottom: 1px solid #333;
+  .form-field-line {
+    min-height: 18px;
+  }
+  .form-section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .form-uscis-only {
+    page-break-inside: avoid;
   }
 }

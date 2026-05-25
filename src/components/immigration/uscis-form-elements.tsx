@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 /* ------------------------------------------------------------------ */
 /*  Checkbox — Unicode □ / ☑ style like real paper forms              */
 /* ------------------------------------------------------------------ */
-function Checkbox({ checked }: { checked: boolean }) {
+function Checkbox({ checked, children }: { checked: boolean; children?: React.ReactNode }) {
   return (
-    <span className="form-checkbox">
-      {checked ? "☑" : "☐"}
+    <span className="form-checkbox-wrapper">
+      <span className="form-checkbox">{checked ? "☑" : "☐"}</span>
+      {children && <span className="form-checkbox-label">{children}</span>}
     </span>
   );
 }
@@ -32,7 +33,8 @@ function LegalTooltip({ reference, title }: { reference?: string; title?: string
 }
 
 /* ------------------------------------------------------------------ */
-/*  FormField — label on left, typewriter value on underline           */
+/*  FormField — label above, value typed on an underline like a real   */
+/*  paper form field                                                    */
 /* ------------------------------------------------------------------ */
 interface FormFieldProps {
   label: string;
@@ -44,11 +46,13 @@ interface FormFieldProps {
 function FormField({ label, value, legalReference, legalTitle }: FormFieldProps) {
   return (
     <div className="form-field">
-      <span className="form-label">
+      <span className="form-field-label">
         {label}
         <LegalTooltip reference={legalReference} title={legalTitle} />
       </span>
-      <span className="form-value">{value || "—"}</span>
+      <div className="form-field-line">
+        <span className="form-field-value">{value || "—"}</span>
+      </div>
     </div>
   );
 }
@@ -66,18 +70,14 @@ interface FormYesNoProps {
 function FormYesNo({ label, value, legalReference, legalTitle }: FormYesNoProps) {
   return (
     <div className="form-field">
-      <span className="form-label">
+      <span className="form-field-label">
         {label}
         <LegalTooltip reference={legalReference} title={legalTitle} />
       </span>
-      <span className="flex items-center gap-3">
-        <span className="form-yesno">
-          <Checkbox checked={value === true} /> Yes
-        </span>
-        <span className="form-yesno">
-          <Checkbox checked={value === false || value === undefined} /> No
-        </span>
-      </span>
+      <div className="form-yesno-row">
+        <Checkbox checked={value === true}>Yes</Checkbox>
+        <Checkbox checked={value === false || value === undefined}>No</Checkbox>
+      </div>
     </div>
   );
 }
@@ -104,7 +104,74 @@ function FormSection({ part, title, children }: FormSectionProps) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  USCISFormShell — official DHS / USCIS header                       */
+/*  ForUSCISUseOnly — top-of-form box with checkboxes                  */
+/* ------------------------------------------------------------------ */
+function ForUSCISUseOnly() {
+  return (
+    <div className="form-uscis-only">
+      <div className="form-uscis-only-header">For USCIS Use Only</div>
+      <div className="form-uscis-only-body">
+        <div className="form-uscis-only-row">
+          <span className="form-field-label">Preference Category:</span>
+          <div className="form-underline-wide" />
+        </div>
+        <div className="form-uscis-only-row">
+          <span className="form-field-label">Country Chargeable:</span>
+          <div className="form-underline-wide" />
+        </div>
+        <div className="form-uscis-only-row">
+          <span className="form-field-label">Priority Date:</span>
+          <div className="form-underline-wide" />
+        </div>
+        <div className="form-uscis-only-row">
+          <span className="form-field-label">Section of Law:</span>
+          <span className="form-yesno-row ml-2">
+            <Checkbox checked={false}>245(a)</Checkbox>
+            <Checkbox checked={false}>245(i)</Checkbox>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  SignatureArea — matching the official form signature block         */
+/* ------------------------------------------------------------------ */
+function SignatureArea() {
+  return (
+    <div className="form-section">
+      <div className="form-section-header">
+        <span className="form-section-part">Signature</span>
+        <span className="form-section-title">Applicant Certification and Signature</span>
+      </div>
+      <div className="form-section-body">
+        <p className="form-instruction">
+          I certify, under penalty of perjury, that all information provided in this
+          application is true and correct. I have reviewed all parts of this application
+          and confirm the information is complete.
+        </p>
+        <div className="form-signature-grid">
+          <div className="form-signature-item">
+            <span className="form-field-label">Signature of Applicant:</span>
+            <div className="form-signature-line" />
+          </div>
+          <div className="form-signature-item">
+            <span className="form-field-label">Date:</span>
+            <div className="form-signature-line" />
+          </div>
+          <div className="form-signature-item">
+            <span className="form-field-label">Printed Name:</span>
+            <div className="form-signature-line" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  USCISFormShell — official DHS / USCIS header with "For USCIS Only" */
 /* ------------------------------------------------------------------ */
 interface USCISFormShellProps {
   formNumber: string;
@@ -112,6 +179,7 @@ interface USCISFormShellProps {
   subtitle: string;
   ombNumber: string;
   expDate: string;
+  editionDate?: string;
   children: React.ReactNode;
   intakeId?: string;
 }
@@ -122,6 +190,7 @@ function USCISFormShell({
   subtitle,
   ombNumber,
   expDate,
+  editionDate = "01/20/25",
   children,
   intakeId,
 }: USCISFormShellProps) {
@@ -136,30 +205,33 @@ function USCISFormShell({
             </Badge>
           </div>
         )}
-        <div className="text-center pb-3 mb-4" style={{ borderBottom: "2px solid #000" }}>
-          <p className="text-[9px] tracking-widest text-slate-600 mb-1" style={{ fontFamily: "system-ui, sans-serif" }}>
-            OMB No. {ombNumber}
-          </p>
-          <p className="text-[11px] font-bold text-slate-800" style={{ fontFamily: "system-ui, sans-serif" }}>
-            Department of Homeland Security
-          </p>
-          <p className="text-[11px] text-slate-600" style={{ fontFamily: "system-ui, sans-serif" }}>
-            U.S. Citizenship and Immigration Services
-          </p>
-          <h1 className="form-title">{formNumber}</h1>
-          <p className="text-[11px] font-medium text-slate-700" style={{ fontFamily: "system-ui, sans-serif" }}>
-            {title}
-            {subtitle && (
-              <>
-                <br />
-                {subtitle}
-              </>
-            )}
-          </p>
-          <p className="text-[9px] text-slate-400 mt-1" style={{ fontFamily: "system-ui, sans-serif" }}>
-            Expires {expDate}. See current forms page at www.uscis.gov/forms.
-          </p>
+
+        {/* Top-right OMB info */}
+        <div className="form-header-top">
+          <div className="form-header-left">
+            <p className="form-header-edition">Form {formNumber} (Edition {editionDate})</p>
+          </div>
+          <div className="form-header-right">
+            <p className="form-header-omb">OMB No. {ombNumber}</p>
+            <p className="form-header-exp">Expires {expDate}</p>
+          </div>
         </div>
+
+        {/* DHS / USCIS Agency Header */}
+        <div className="form-header-agency">
+          <p className="form-agency-name">Department of Homeland Security</p>
+          <p className="form-agency-sub">U.S. Citizenship and Immigration Services</p>
+        </div>
+
+        {/* Form Title Block */}
+        <div className="form-header-title-block">
+          <h1 className="form-title">{formNumber}</h1>
+          <p className="form-subtitle">{title}</p>
+          {subtitle && <p className="form-subtitle-sub">{subtitle}</p>}
+        </div>
+
+        {/* For USCIS Use Only */}
+        <ForUSCISUseOnly />
 
         {/* Attorney Review Banner */}
         <div className="no-print bg-amber-50 border border-amber-300 rounded p-2 mb-4 flex items-start gap-2">
@@ -178,34 +250,7 @@ function USCISFormShell({
 
       {children}
 
-      {/* Signature Area */}
-      <div className="form-section">
-        <div className="form-section-header">
-          <span className="form-section-part">Signature</span>
-          <span className="form-section-title">Applicant Certification and Signature</span>
-        </div>
-        <div className="form-section-body">
-          <p className="form-instruction">
-            I certify, under penalty of perjury, that all information provided in this
-            application is true and correct. I have reviewed all parts of this application
-            and confirm the information is complete.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
-            <div>
-              <span className="form-label">Signature of Applicant:</span>
-              <div className="form-signature-line" />
-            </div>
-            <div>
-              <span className="form-label">Date:</span>
-              <div className="form-signature-line" />
-            </div>
-            <div>
-              <span className="form-label">Printed Name:</span>
-              <div className="form-signature-line" />
-            </div>
-          </div>
-        </div>
-      </div>
+      <SignatureArea />
 
       {/* Footer Disclaimer */}
       <div className="no-print mt-4 p-3 rounded bg-amber-50 border border-amber-200 flex items-start gap-2">
@@ -226,5 +271,5 @@ function USCISFormShell({
   );
 }
 
-export { Checkbox, FormField, FormSection, FormYesNo, LegalTooltip, USCISFormShell };
+export { Checkbox, FormField, FormSection, FormYesNo, LegalTooltip, USCISFormShell, SignatureArea, ForUSCISUseOnly };
 export type { FormFieldProps, FormYesNoProps, FormSectionProps, USCISFormShellProps };
