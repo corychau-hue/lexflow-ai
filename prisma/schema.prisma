@@ -422,3 +422,21 @@ model Intake {
 
   @@map("intakes")
 }
+
+model ImmigrationUpdate {
+  id        String   @id @default(cuid())
+  title     String
+  date      DateTime
+  category  String
+  summary   String
+  source    String
+  url       String
+  formType  String?  // Maps to form number when detected (e.g. "I-130", "I-485", "I-765")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+  @@index([formType])
+  @@index([source])
+  @@map("immigration_updates")
+}

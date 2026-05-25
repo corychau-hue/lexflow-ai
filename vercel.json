@@ -1,5 +1,11 @@
 {
   "framework": "nextjs",
   "installCommand": "npm install",
-  "buildCommand": "npx prisma generate && next build"
+  "buildCommand": "npx prisma generate && next build",
+  "crons": [
+    {
+      "path": "/api/cron/refresh-updates",
+      "schedule": "0 * * * *"
+    }
+  ]
 }

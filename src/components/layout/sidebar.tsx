@@ -25,6 +25,7 @@ import {
   LogOut,
   ChevronRight,
   Scale,
+  Newspaper,
 } from "lucide-react";
 import { useState } from "react";
 import { UserRole } from "@/types";
@@ -50,6 +51,7 @@ const navItems: NavItem[] = [
   { label: "CRM Leads", href: "/crm", icon: <UserCheck size={20} />, roles: ["ADMIN", "ATTORNEY", "PARALEGAL", "INTAKE_STAFF"] },
   { label: "Reports", href: "/reports", icon: <BarChart3 size={20} />, roles: ["ADMIN", "ATTORNEY"] },
   { label: "Review Queue", href: "/review-queue", icon: <Shield size={20} />, roles: ["ADMIN", "ATTORNEY"] },
+  { label: "News", href: "/immigration/news", icon: <Newspaper size={20} /> },
   { label: "Settings", href: "/settings", icon: <Settings size={20} />, roles: ["ADMIN"] },
   { label: "User Roles", href: "/roles", icon: <Shield size={20} />, roles: ["ADMIN"] },
 ];

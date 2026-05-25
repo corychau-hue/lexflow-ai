@@ -2,15 +2,21 @@
 
 import { useSession } from "next-auth/react";
 import { redirect, useParams } from "next/navigation";
-import { useState, useEffect } from "react";
-import { FileText, Download, Shield, AlertTriangle, CheckCircle, Printer } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { FileText, Download, Shield, AlertTriangle, CheckCircle, Printer, Bell } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/textarea";
-import { getClientIntake, IntakeData } from "@/lib/intake-store";
+import { getClientIntake, IntakeData, getSampleIntake } from "@/lib/intake-store";
 import { addReviewItem } from "@/lib/review-store";
 import { I485Form } from "@/components/immigration/i485-form";
+import { I130Form } from "@/components/immigration/i130-form";
+import { I130AForm } from "@/components/immigration/i130a-form";
+import { I765Form } from "@/components/immigration/i765-form";
+import { I131Form } from "@/components/immigration/i131-form";
+import { I864Form } from "@/components/immigration/i864-form";
+import { DS260Form } from "@/components/immigration/ds260-form";
+import { N400Form } from "@/components/immigration/n400-form";
 
 const formTypes = [
   { value: "I-130", label: "I-130 Petition for Alien Relative" },
@@ -145,6 +151,8 @@ export default function ImmigrationWorkflowPage() {
   const [caseItem, setCaseItem] = useState<CaseData | null>(null);
   const [client, setClient] = useState<ClientData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [formAlerts, setFormAlerts] = useState<{ title: string; date: string; url: string }[]>([]);
+  const [alertsLoading, setAlertsLoading] = useState(false);
 
   useEffect(() => {
     if (!params.caseId) return;
@@ -179,13 +187,49 @@ export default function ImmigrationWorkflowPage() {
     if (client?.id) {
       setIntakeLoading(true);
       getClientIntake(client.id).then((data) => {
-        setIntakeData(data);
+        if (data) {
+          setIntakeData(data);
+        } else {
+          // No intake found — seed a sample intake populated with the client's real info
+          const sample = getSampleIntake();
+          sample.personal.firstName = client.firstName;
+          sample.personal.lastName = client.lastName;
+          sample.personal.email = client.email || sample.personal.email;
+          sample.personal.phone = client.phone || sample.personal.phone;
+          sample.personal.dateOfBirth = client.dateOfBirth ? new Date(client.dateOfBirth).toISOString().split("T")[0] : sample.personal.dateOfBirth;
+          sample.address.street = client.addressStreet || sample.address.street;
+          sample.address.city = client.addressCity || sample.address.city;
+          sample.address.state = client.addressState || sample.address.state;
+          sample.address.zip = client.addressZip || sample.address.zip;
+          sample.clientId = client.id;
+          setIntakeData(sample);
+        }
         setIntakeLoading(false);
       });
     } else {
       setIntakeLoading(false);
     }
   }, [client?.id]);
+
+  // Fetch form edition alerts when form selection changes
+  const fetchFormAlerts = useCallback(async (form: string) => {
+    setAlertsLoading(true);
+    try {
+      const res = await fetch(`/api/immigration/form-alerts?formType=${encodeURIComponent(form)}`);
+      const data = await res.json();
+      if (data.success) {
+        setFormAlerts(data.items || []);
+      }
+    } catch {
+      setFormAlerts([]);
+    } finally {
+      setAlertsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedForm) fetchFormAlerts(selectedForm);
+  }, [selectedForm, fetchFormAlerts]);
 
   if (status === "loading") return <div className="flex items-center justify-center min-h-screen"><p className="text-slate-500">Loading...</p></div>;
   if (status === "unauthenticated") redirect("/login");
@@ -345,7 +389,18 @@ export default function ImmigrationWorkflowPage() {
     window.print();
   };
 
-  const isI485 = selectedForm === "I-485";
+  const formComponentMap: Record<string, React.ComponentType<{ clientData: FormattedClientData; intakeId?: string }>> = {
+    "I-130": I130Form,
+    "I-130A": I130AForm,
+    "I-485": I485Form,
+    "I-765": I765Form,
+    "I-131": I131Form,
+    "I-864": I864Form,
+    "DS-260": DS260Form,
+    "N-400": N400Form,
+  };
+
+  const SelectedFormComponent = selectedForm ? formComponentMap[selectedForm] : undefined;
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -367,6 +422,34 @@ export default function ImmigrationWorkflowPage() {
           </p>
         </div>
       </div>
+
+      {/* Form Edition Alerts */}
+      {formAlerts.length > 0 && (
+        <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-200 flex items-start gap-3">
+          <Bell size={20} className="text-indigo-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-indigo-800">
+              USCIS Updates for {selectedForm}
+            </p>
+            <ul className="mt-1 space-y-1">
+              {formAlerts.slice(0, 3).map((alert, i) => (
+                <li key={i} className="text-xs text-indigo-700 flex items-start gap-2">
+                  <span className="text-indigo-400 mt-0.5">&bull;</span>
+                  <a href={alert.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                    <span className="font-medium">{alert.title}</span>
+                  </a>
+                  <span className="text-indigo-400 whitespace-nowrap">({alert.date})</span>
+                </li>
+              ))}
+            </ul>
+            {formAlerts.length > 3 && (
+              <p className="text-[10px] text-indigo-500 mt-1">
+                +{formAlerts.length - 3} more updates — see <a href="/immigration/news" className="underline font-medium">News page</a> for all
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Success Message */}
       {packetSubmitted && (
@@ -422,48 +505,9 @@ export default function ImmigrationWorkflowPage() {
         </Card>
       )}
 
-      {/* I-485 Full Form */}
-      {isI485 && packetReady && !intakeLoading && (
-        <I485Form clientData={clientData} intakeId={intakeId} />
-      )}
-
-      {/* Generic Form for non-I-485 forms */}
-      {!isI485 && packetReady && selectedForm && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <FileText size={18} className="text-accent-600" />
-                Form Data Packet — {selectedForm}
-                <Badge variant="status" status="PENDING_REVIEW">Needs Attorney Review</Badge>
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {[
-                { field: "Beneficiary Name", value: clientData.fullName },
-                { field: "Date of Birth", value: clientData.dateOfBirth },
-                { field: "Country of Birth", value: clientData.countryOfBirth },
-                { field: "Country of Citizenship", value: clientData.citizenship },
-                { field: "A-Number", value: clientData.aNumber },
-                { field: "Current Status", value: clientData.immigrationStatus },
-                { field: "Date of Last Entry", value: clientData.dateOfEntry },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
-                  <span className="text-sm text-slate-600">{item.field}</span>
-                  <span className="text-sm font-medium text-slate-800">{item.value}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200">
-              <p className="text-xs text-amber-700 flex items-center gap-1">
-                <AlertTriangle size={12} />
-                This data packet must be reviewed by an attorney before filing with USCIS. Do not submit without attorney approval.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+      {/* USCIS Form Data Packet */}
+      {packetReady && !intakeLoading && SelectedFormComponent && (
+        <SelectedFormComponent clientData={clientData} intakeId={intakeId} />
       )}
     </div>
   );
