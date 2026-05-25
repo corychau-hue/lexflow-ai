@@ -99,7 +99,7 @@ export default function ClientDetailPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Link href={`/intake/${client.id}`}><Button variant="secondary" size="sm">Edit</Button></Link>
+              <Link href={`/intake/${client.id}`}><Button variant="secondary" size="sm">Intake</Button></Link>
               <Link href={`/cases/new?clientId=${client.id}`}><Button variant="primary" size="sm">New Case</Button></Link>
             </div>
           </div>
